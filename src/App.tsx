@@ -125,32 +125,39 @@ export default function App() {
 
   const totalModules = studyGuide.length;
   
-  // Progress calculation
+  // Progress calculation - Main QBank only
   const progressPercent = useMemo(() => {
-    if (phase === 'complete') return 100;
+    if (phase !== 'stream') return 100;
     
-    const totalMainItems = studyGuide.reduce((acc, s) => acc + s.stream.filter(i => i.type !== 'case').length, 0);
-    const totalCaseItems = allCases.length;
-    const totalOverall = totalMainItems + totalCaseItems;
+    // Total number of questions in the entire curriculum (excluding cases)
+    const totalMainQuestions = studyGuide.reduce((acc, s) => 
+      acc + s.stream.filter(i => i.type === 'quiz').length, 0
+    );
 
-    let completedItems = 0;
-    // Items from previous modules
+    if (totalMainQuestions === 0) return 0;
+
+    let completedQuestions = 0;
+    
+    // 1. Add ALL questions from fully completed modules
     for (let i = 1; i < moduleId; i++) {
       const mod = studyGuide.find(s => s.id === i);
-      if (mod) completedItems += mod.stream.filter(item => item.type !== 'case').length;
-    }
-
-    if (phase === 'stream' || phase === 'global_cases') {
-      // Sum items in completed flow pages
-      for (let i = 0; i < flowIndex; i++) {
-        if (flow[i]) completedItems += flow[i].items.length;
+      if (mod) {
+        completedQuestions += mod.stream.filter(item => item.type === 'quiz').length;
       }
-    } else if (phase === 'global_review_cases') {
-      completedItems = totalMainItems + totalCaseItems;
     }
 
-    return Math.round((completedItems / totalOverall) * 100);
-  }, [phase, moduleId, flowIndex, flow, allCases.length]);
+    // 2. Add questions from the current module that have been passed in the flow
+    if (flow && flow.length > 0) {
+      for (let i = 0; i < flowIndex; i++) {
+        if (flow[i]) {
+          completedQuestions += flow[i].items.filter(item => item.type === 'quiz').length;
+        }
+      }
+    }
+
+    const percent = Math.round((completedQuestions / totalMainQuestions) * 100);
+    return Math.min(100, Math.max(0, percent)); // Ensure it stays between 0 and 100
+  }, [phase, moduleId, flowIndex, flow]);
 
   const handleNextStreamItem = () => {
     const nextItemsSinceReview = itemsSinceReview + 1;
