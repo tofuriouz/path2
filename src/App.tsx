@@ -8,16 +8,79 @@ import { cn } from './lib/utils';
 type AppPhase = 'stream' | 'review' | 'global_cases' | 'global_review_cases' | 'complete';
 
 export default function App() {
-  const [moduleId, setModuleId] = useState<number>(1);
-  const [phase, setPhase] = useState<AppPhase>('stream');
-  const [flowIndex, setFlowIndex] = useState(0);
-  const [reviewQueue, setReviewQueue] = useState<number[]>([]);
+  const [moduleId, setModuleId] = useState<number>(() => {
+    const saved = localStorage.getItem('oralpath_state_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved).moduleId || 1;
+      } catch (e) { return 1; }
+    }
+    return 1;
+  });
+  const [phase, setPhase] = useState<AppPhase>(() => {
+    const saved = localStorage.getItem('oralpath_state_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved).phase || 'stream';
+      } catch (e) { return 'stream'; }
+    }
+    return 'stream';
+  });
+  const [flowIndex, setFlowIndex] = useState(() => {
+    const saved = localStorage.getItem('oralpath_state_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved).flowIndex || 0;
+      } catch (e) { return 0; }
+    }
+    return 0;
+  });
+  const [reviewQueue, setReviewQueue] = useState<number[]>(() => {
+    const saved = localStorage.getItem('oralpath_state_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved).reviewQueue || [];
+      } catch (e) { return []; }
+    }
+    return [];
+  });
+  const [isReviewing, setIsReviewing] = useState(() => {
+    const saved = localStorage.getItem('oralpath_state_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved).isReviewing || false;
+      } catch (e) { return false; }
+    }
+    return false;
+  });
+  const [itemsSinceReview, setItemsSinceReview] = useState(() => {
+    const saved = localStorage.getItem('oralpath_state_v1');
+    if (saved) {
+      try {
+        return JSON.parse(saved).itemsSinceReview || 0;
+      } catch (e) { return 0; }
+    }
+    return 0;
+  });
   const [showTutorial, setShowTutorial] = useState(false);
 
   useEffect(() => {
     const hasSeen = localStorage.getItem('oralpath_tutorial_v1');
     if (!hasSeen) setShowTutorial(true);
   }, []);
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    const state = { moduleId, phase, flowIndex, reviewQueue, itemsSinceReview, isReviewing };
+    localStorage.setItem('oralpath_state_v1', JSON.stringify(state));
+  }, [moduleId, phase, flowIndex, reviewQueue, itemsSinceReview, isReviewing]);
+
+  // Safety: Recover from inconsistent review state
+  useEffect(() => {
+    if (isReviewing && reviewQueue.length === 0) {
+      setIsReviewing(false);
+    }
+  }, [isReviewing, reviewQueue]);
 
   const closeTutorial = () => {
     localStorage.setItem('oralpath_tutorial_v1', 'true');
@@ -60,9 +123,6 @@ export default function App() {
     return result;
   }, [phase, realStream, allCases]);
 
-  const [isReviewing, setIsReviewing] = useState(false);
-  const [itemsSinceReview, setItemsSinceReview] = useState(0);
-
   const totalModules = studyGuide.length;
   
   // Progress calculation
@@ -83,7 +143,7 @@ export default function App() {
     if (phase === 'stream' || phase === 'global_cases') {
       // Sum items in completed flow pages
       for (let i = 0; i < flowIndex; i++) {
-        completedItems += flow[i].items.length;
+        if (flow[i]) completedItems += flow[i].items.length;
       }
     } else if (phase === 'global_review_cases') {
       completedItems = totalMainItems + totalCaseItems;
@@ -93,28 +153,31 @@ export default function App() {
   }, [phase, moduleId, flowIndex, flow, allCases.length]);
 
   const handleNextStreamItem = () => {
-    // Dynamic Interleaving Logic
-    // After every 8 items (1 batch of 4:4), if reviewQueue is not empty, trigger review
     const nextItemsSinceReview = itemsSinceReview + 1;
     
     if (isReviewing) {
-      // We just finished a review item
-      if (reviewQueue.length > 0) {
-        // Continue reviewing if we want to clear more? 
-        // Let's say we review 2 items at a time
-        if (nextItemsSinceReview % 2 === 0) {
-          setIsReviewing(false);
-          setItemsSinceReview(0);
-        }
-      } else {
+      const shouldStopReview = reviewQueue.length === 0 || nextItemsSinceReview % 2 === 0;
+      if (shouldStopReview) {
         setIsReviewing(false);
         setItemsSinceReview(0);
+        // If we were at the end of the flow when we started review, transition now
+        if (flowIndex >= flow.length - 1) {
+          handleModuleTransition();
+        }
+      } else {
+        setItemsSinceReview(nextItemsSinceReview);
       }
     } else {
       // We just finished a stream item
       if (nextItemsSinceReview >= 8 && reviewQueue.length > 0) {
         setIsReviewing(true);
         setItemsSinceReview(0);
+        // Advance flowIndex so we don't repeat the item after review
+        if (flowIndex < flow.length - 1) {
+          setFlowIndex(prev => prev + 1);
+        } else {
+          // If we are at the end, we'll transition after review
+        }
       } else {
         // Advance flow
         if (flowIndex < flow.length - 1) {
@@ -225,24 +288,24 @@ export default function App() {
             <div className="border border-border bg-background w-full max-w-xl relative p-8 md:p-12 shadow-2xl">
               <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none" />
               <div className="relative z-10">
-                <p className="font-mono text-accent uppercase tracking-[0.2em] text-[10px] mb-6">ORAL.INIT // ATOMIC_PROTOCOL</p>
+                <p className="font-mono text-accent uppercase tracking-[0.2em] text-[10px] mb-6">HOW TO STUDY</p>
                 <h2 className="text-3xl md:text-4xl font-display font-bold tracking-tighter leading-none text-foreground mb-8">
-                  INTEGRATED FEED
+                  THE LEARNING FEED
                 </h2>
                 <div className="w-full h-px bg-border mb-8" />
                 
                 <div className="space-y-6 mb-10">
                   <div>
-                    <h3 className="font-mono text-xs text-foreground tracking-[0.1em] mb-1">[ 01_BATCHED_LEARNING ]</h3>
-                    <p className="text-muted-foreground font-sans text-sm leading-relaxed">Read 4 atomic chunks, then solve 4 targeted questions. High-density retention.</p>
+                    <h3 className="font-mono text-xs text-foreground tracking-[0.1em] mb-1">[ READ & TEST ]</h3>
+                    <p className="text-muted-foreground font-sans text-sm leading-relaxed">Read a few short lessons, then immediately answer questions to lock in what you've learned.</p>
                   </div>
                   <div>
-                    <h3 className="font-mono text-xs text-accent tracking-[0.1em] mb-1">[ 02_DYNAMIC_SRS ]</h3>
-                    <p className="text-muted-foreground font-sans text-sm leading-relaxed">Missed or guessed items are interleaved back into your feed automatically for accelerated reinforcement.</p>
+                    <h3 className="font-mono text-xs text-accent tracking-[0.1em] mb-1">[ SMART REVIEW ]</h3>
+                    <p className="text-muted-foreground font-sans text-sm leading-relaxed">If you miss a question or feel unsure, the app will bring it back later to make sure you've mastered it.</p>
                   </div>
                   <div>
-                    <h3 className="font-mono text-xs text-foreground tracking-[0.1em] mb-1">[ 03_FINAL_VALIDATION ]</h3>
-                    <p className="text-muted-foreground font-sans text-sm leading-relaxed">After completing ALL volumes, you will be tested on global clinical scenarios.</p>
+                    <h3 className="font-mono text-xs text-foreground tracking-[0.1em] mb-1">[ FINAL PRACTICE ]</h3>
+                    <p className="text-muted-foreground font-sans text-sm leading-relaxed">Once you finish all the lessons, you'll face real-world clinical cases to test your skills.</p>
                   </div>
                 </div>
 
@@ -333,7 +396,10 @@ export default function App() {
               
               <div className="flex flex-col sm:flex-row gap-6">
                 <button 
-                  onClick={() => window.location.reload()}
+                  onClick={() => {
+                    localStorage.removeItem('oralpath_state_v1');
+                    window.location.reload();
+                  }}
                   className="font-mono text-sm uppercase tracking-[0.2em] text-background bg-foreground hover:bg-accent hover:text-foreground px-8 py-4 transition-colors"
                 >
                   [ RESTART_PROTOCOL ]
