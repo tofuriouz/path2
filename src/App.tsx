@@ -269,14 +269,14 @@ export default function App() {
       <header className="fixed top-1.5 left-0 w-full z-40 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="max-w-3xl mx-auto px-6 h-12 flex items-center justify-between">
           <span className="font-mono font-bold text-xs tracking-widest text-foreground uppercase">
-            {phase.startsWith('global') ? 'ORAL.PATH // GLOBAL_VALIDATION' : `ORAL.PATH // VOL_${String(moduleId).padStart(2, '0')}`}
+            {phase.startsWith('global') ? 'Oral Pathology // Clinical Cases' : `Oral Pathology // Module ${moduleId}`}
           </span>
           <span className="font-mono text-[10px] tracking-[0.2em] text-muted-foreground uppercase">
-            {isReviewing ? 'DYNAMIC_SRS_INTERLEAVE' : (
+            {isReviewing ? 'Smart Review' : (
               <>
-                {phase === 'stream' && '01_INTEGRATED_FEED'}
-                {phase === 'global_cases' && '03_GLOBAL_CASES'}
-                {phase === 'complete' && 'STATUS_COMPLETE'}
+                {phase === 'stream' && 'Lesson & Quiz'}
+                {phase === 'global_cases' && 'Clinical Cases'}
+                {phase === 'complete' && 'Complete'}
               </>
             )}
           </span>
@@ -320,7 +320,7 @@ export default function App() {
                   onClick={closeTutorial}
                   className="w-full font-mono text-sm uppercase tracking-[0.2em] text-background bg-foreground hover:bg-accent hover:text-foreground py-4 transition-colors"
                 >
-                  [ ACKNOWLEDGE ]
+                  START STUDYING
                 </button>
               </div>
             </div>
@@ -355,7 +355,7 @@ export default function App() {
                       onClick={handleNextStreamItem}
                       className="font-mono text-sm uppercase tracking-[0.2em] text-foreground hover:text-accent transition-colors flex items-center gap-4"
                     >
-                      [ CONTINUE TO QUESTIONS ] <ArrowRight size={16} />
+                      CONTINUE TO QUESTIONS <ArrowRight size={16} />
                     </button>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function App() {
                     handleQuizResult(quality, currentItem.items[0].questionId!);
                     handleNextStreamItem();
                   }} 
-                  tag={currentItem.type === 'case' ? "GLOBAL_CASE" : "KNOWLEDGE_CHECK"}
+                  tag={currentItem.type === 'case' ? "Clinical Case" : "Knowledge Check"}
                 />
               )}
             </motion.div>
@@ -398,8 +398,8 @@ export default function App() {
               animate={{ opacity: 1 }}
               className="w-full flex flex-col justify-center py-20"
             >
-              <h2 className="text-4xl md:text-5xl font-display font-bold tracking-tighter leading-none text-foreground mb-6">SYSTEM_CLEARED</h2>
-              <p className="text-lg text-muted-foreground mb-12 max-w-2xl font-mono">All volumes and clinical validations complete. Mastery achieved.</p>
+              <h2 className="text-4xl md:text-5xl font-display font-bold tracking-tighter leading-none text-foreground mb-6">Course Complete</h2>
+              <p className="text-lg text-muted-foreground mb-12 max-w-2xl font-mono">You have successfully completed all modules and clinical cases.</p>
               
               <div className="flex flex-col sm:flex-row gap-6">
                 <button 
@@ -409,7 +409,7 @@ export default function App() {
                   }}
                   className="font-mono text-sm uppercase tracking-[0.2em] text-background bg-foreground hover:bg-accent hover:text-foreground px-8 py-4 transition-colors"
                 >
-                  [ RESTART_PROTOCOL ]
+                  RESTART COURSE
                 </button>
               </div>
             </motion.div>
@@ -497,7 +497,7 @@ function FeedQuiz({ q, onNext, tag }: { q: Question, onNext: (quality: 'incorrec
             className="overflow-hidden"
           >
             <div className="pt-8 mt-8 border-t border-border border-dashed">
-              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em] mb-4">ORAL.LOG // EXPLANATION</p>
+              <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-[0.2em] mb-4">EXPLANATION</p>
               <p className="text-foreground text-lg md:text-xl leading-relaxed max-w-3xl mb-10 font-display tracking-tight">
                 {q.explanation}
               </p>
@@ -508,13 +508,13 @@ function FeedQuiz({ q, onNext, tag }: { q: Question, onNext: (quality: 'incorrec
                     onClick={() => onNext('knew')}
                     className="font-mono text-sm uppercase tracking-[0.2em] text-background bg-foreground hover:bg-accent hover:text-foreground px-8 py-4 transition-colors"
                   >
-                    [ KNEW IT ]
+                    KNEW IT
                   </button>
                   <button 
                     onClick={() => onNext('guessed')}
                     className="font-mono text-sm uppercase tracking-[0.2em] text-foreground border border-foreground hover:border-accent hover:text-accent px-8 py-4 transition-colors"
                   >
-                    [ GUESSED ]
+                    GUESSED
                   </button>
                 </div>
               ) : (
@@ -522,7 +522,7 @@ function FeedQuiz({ q, onNext, tag }: { q: Question, onNext: (quality: 'incorrec
                   onClick={() => onNext('incorrect')}
                   className="font-mono text-sm uppercase tracking-[0.2em] text-foreground hover:text-accent transition-colors flex items-center gap-4"
                 >
-                  [ CONTINUE ] <ArrowRight size={16} />
+                  CONTINUE <ArrowRight size={16} />
                 </button>
               )}
             </div>
@@ -544,7 +544,7 @@ function FeedFlashcard({ q, onAnswer, queueLength }: { q: Question, onAnswer: (q
     <div className="w-full">
       <div className="mb-10 flex justify-between items-end">
         <span className="font-mono text-accent text-[10px] uppercase tracking-[0.2em] block">
-          ORAL.MEM // ID_{String(q.id).padStart(4, '0')}
+          REVIEW // ID_{String(q.id).padStart(4, '0')}
         </span>
         <span className="font-mono text-accent text-[10px] uppercase tracking-[0.2em] block">
           QUEUE: {queueLength}
@@ -560,7 +560,7 @@ function FeedFlashcard({ q, onAnswer, queueLength }: { q: Question, onAnswer: (q
             onClick={() => setIsFlipped(true)}
             className="font-mono text-sm uppercase tracking-[0.2em] text-foreground hover:text-accent transition-colors"
           >
-            [ REVEAL_ANSWER ]
+            REVEAL ANSWER
           </button>
         </div>
       ) : (
@@ -580,13 +580,13 @@ function FeedFlashcard({ q, onAnswer, queueLength }: { q: Question, onAnswer: (q
               onClick={() => onAnswer('again')} 
               className="font-mono text-sm uppercase tracking-[0.2em] text-accent hover:text-foreground transition-colors"
             >
-              [ AGAIN ]
+              AGAIN
             </button>
             <button 
               onClick={() => onAnswer('good')} 
               className="font-mono text-sm uppercase tracking-[0.2em] text-emerald-500 hover:text-foreground transition-colors"
             >
-              [ GOOD ]
+              GOOD
             </button>
           </div>
         </div>
